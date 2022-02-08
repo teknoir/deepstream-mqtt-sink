@@ -1,0 +1,28 @@
+# this  Makefile is to be used to build the test application to exercise the sample_sink sinkcol adaptor
+CXX:=g++
+NVDS_VERSION:=6.0
+DS_INC:=/opt/nvidia/deepstream/deepstream/sources/includes
+DS_LIB:=/opt/nvidia/deepstream/deepstream/lib
+
+SYNC_SEND_BIN:= test_mqtt_sink_sync
+ASYNC_SEND_BIN:= test_mqtt_sink_async
+
+SYNC_SEND_SRCS:=test_mqtt_sink_sync.cpp
+ASYNC_SEND_SRCS:=test_mqtt_sink_async.cpp
+
+CXXFLAGS:= -I$(DS_INC) -rdynamic
+LDFLAGS:= -L$(DS_LIB) -ldl -Wl,-rpath=$(DS_LIB)
+
+default: all
+
+all: $(SYNC_SEND_BIN) $(ASYNC_SEND_BIN)
+
+$(SYNC_SEND_BIN) : $(SYNC_SEND_SRCS)
+	$(CXX) -o $@ $^  $(CXXFLAGS) $(LDFLAGS)
+
+$(ASYNC_SEND_BIN) : $(ASYNC_SEND_SRCS)
+	$(CXX) -o $@ $^  $(CXXFLAGS) $(LDFLAGS)
+
+clean:
+	rm -rf $(SYNC_SEND_BIN) $(ASYNC_SEND_BIN)
+
