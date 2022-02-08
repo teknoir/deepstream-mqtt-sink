@@ -4,7 +4,7 @@ CXX:=g++
 PKGS:= glib-2.0 
 DS_INC:=/opt/nvidia/deepstream/deepstream/sources/includes
 DS_LIB:=/opt/nvidia/deepstream/deepstream/lib
-SRCS:=  libnvds_mqtt_sink.cpp json_helper.cpp nvds_utils.cpp
+SRCS:=  libnvds_mqtt_sink.cpp mqtt_client.cpp json_helper.cpp nvds_utils.cpp
 TARGET_LIB:= libnvds_mqtt_sink.so
 
 CFLAGS:= -fPIC -Wall

@@ -7,8 +7,8 @@
 
 /* MODIFY: to reflect your own path */
 #define SO_PATH "./"  // "/opt/nvidia/deepstream/deepstream/lib/"
-#define MQTT_PROTO_SO "libnvds_mqtt_sink.so"
-#define MQTT_PROTO_PATH SO_PATH MQTT_PROTO_SO
+#define MQTT_SINK_SO "libnvds_mqtt_sink.so"
+#define MQTT_SINK_PATH SO_PATH MQTT_SINK_SO
 #define MQTT_CFG_FILE "./cfg.txt"
 //connection string format: host;port
 #define MQTT_CONNECT_STR "localhost;31883"
@@ -62,7 +62,7 @@ int main() {
     char *(*msgapi_get_protocol_name_ptr)(void);
     NvDsMsgApiErrorType(*msgapi_connection_signature_ptr)(char * connection_str, char * config_path, char * output_str, int max_len);
 
-    void *so_handle = dlopen(MQTT_PROTO_PATH, RTLD_LAZY);
+    void *so_handle = dlopen(MQTT_SINK_PATH, RTLD_LAZY);
     char *error;
     const char SEND_MSG[] = "{ \
    \"messageid\" : \"84a3a0ad-7eb8-49a2-9aa7-104ded6764d0_c788ea9efa50\", \

@@ -7,8 +7,8 @@
 
 /* MODIFY: to reflect your own path */
 #define SO_PATH "./"  // "/opt/nvidia/deepstream/deepstream/lib/"
-#define MQTT_PROTO_SO "libnvds_mqtt_sink.so"
-#define MQTT_PROTO_PATH SO_PATH MQTT_PROTO_SO
+#define MQTT_SINK_SO "libnvds_mqtt_sink.so"
+#define MQTT_SINK_PATH SO_PATH MQTT_SINK_SO
 #define MQTT_CFG_FILE "./cfg.txt"
 //connection string format: host;port
 #define MQTT_CONNECT_STR "localhost;31883"
@@ -48,7 +48,7 @@ int main() {
                                                           int
     max_len);
 
-    void *so_handle = dlopen(MQTT_PROTO_PATH, RTLD_LAZY);
+    void *so_handle = dlopen(MQTT_SINK_PATH, RTLD_LAZY);
     char *error;
     //   const char SEND_MSG[]="Hello World";
     const char SEND_MSG[] = "{ \
