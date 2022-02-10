@@ -217,6 +217,7 @@ bool async_client::subscribe(char* topic, nvds_msgapi_subscribe_request_cb_t cb,
         return false;
     }
 
+    lock_guard<mutex> g(_arrival_lock);
     _topic_arrived_vec.push_back({ topic, cb, user_ctx });
 
     return true;
@@ -252,6 +253,7 @@ bool async_client::send_async(mqtt::string_ref topic, const void* payload, size_
         return NVDS_MSGAPI_ERR;
     }
 
+    lock_guard<mutex> g(_delivery_lock);
     _delivery_cb_vec.push_back({ pubtok->get_message_id(), dl });
 
     return true;
@@ -276,7 +278,7 @@ bool async_client::disconnect(){
 }
 
 void async_client::reconnect() {
-    std::this_thread::sleep_for(std::chrono::milliseconds(2500));
+    this_thread::sleep_for(chrono::milliseconds(2500));
     try {
         _cli->connect(_conn_opts, nullptr, *this);
     }
@@ -303,13 +305,13 @@ void async_client::on_success(const mqtt::token &tok) {
 }
 
 // (Re)connection success
-void async_client::connected(const std::string &cause) {
+void async_client::connected(const string &cause) {
     nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "Client %s is connected\n", _client_id.c_str());
 }
 
 // Callback for when the connection is lost.
 // This will initiate the attempt to manually reconnect.
-void async_client::connection_lost(const std::string &cause) {
+void async_client::connection_lost(const string &cause) {
     nvds_log(NVDS_MQTT_LOG_CAT, LOG_WARNING, "Client %s lost connection: %s\n", _client_id.c_str(), cause.c_str());
     _nretry = 0;
     reconnect();
@@ -319,22 +321,24 @@ void async_client::connection_lost(const std::string &cause) {
 void async_client::message_arrived(mqtt::const_message_ptr msg) {
     nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "MQTT message arrived: payload= %s \n topic = %s\n", msg->to_string().c_str(), msg->get_topic().c_str());
 
+    lock_guard<mutex> g(_arrival_lock);
     // Find correct callback and user context and invoke it
-    auto it = std::find_if(_topic_arrived_vec.begin(), _topic_arrived_vec.end(), [msg](const tuple<string, nvds_msgapi_subscribe_request_cb_t, void*>& e) {return std::get<0>(e) == msg->get_topic();});
+    auto it = find_if(_topic_arrived_vec.begin(), _topic_arrived_vec.end(), [msg](const tuple<string, nvds_msgapi_subscribe_request_cb_t, void*>& e) {return get<0>(e) == msg->get_topic();});
     if (it != _topic_arrived_vec.end()) {
-        nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "Matching callback for: topic = %s\n", std::get<0>(*it).c_str());
-        std::get<1>(*it)(NVDS_MSGAPI_OK, (void*)msg->to_string().c_str(), (int)msg->to_string().length(), (char*)std::get<0>(*it).c_str(), std::get<2>(*it));
+        nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "Matching callback for: topic = %s\n", get<0>(*it).c_str());
+        get<1>(*it)(NVDS_MSGAPI_OK, (void*)msg->to_string().c_str(), (int)msg->to_string().length(), (char*)get<0>(*it).c_str(), get<2>(*it));
     }
 }
 
 void async_client::delivery_complete(mqtt::delivery_token_ptr tok) {
     nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "Delivery complete...\n");
 
+    lock_guard<mutex> g(_delivery_lock);
     // Find correct callback and user context and remove it
-    auto it = std::find_if(_delivery_cb_vec.begin(), _delivery_cb_vec.end(), [tok](const tuple<int, delivery_action_listener*>& e) {return std::get<0>(e) == tok->get_message_id();});
+    auto it = find_if(_delivery_cb_vec.begin(), _delivery_cb_vec.end(), [tok](const tuple<int, delivery_action_listener*>& e) {return get<0>(e) == tok->get_message_id();});
     if (it != _delivery_cb_vec.end()) {
-        nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "Matching callback for: message_id = %d\n", std::get<0>(*it));
-        delete (delivery_action_listener*)std::get<1>(*it);
+        nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "Matching callback for: message_id = %d\n", get<0>(*it));
+        delete (delivery_action_listener*)get<1>(*it);
         _delivery_cb_vec.erase(it);
     }
 }

@@ -70,8 +70,12 @@ class async_client : public virtual mqtt::callback, public virtual mqtt::iaction
 
     // Subscribe CB <topic, cb, user_ctx>
     vector<tuple<string, nvds_msgapi_subscribe_request_cb_t, void*> > _topic_arrived_vec;
+    /** Arrival mutex */
+    mutable mutex _arrival_lock;
     // Delivery CB <message_id, delivery_action_listener_ptr>
     vector<tuple<int, delivery_action_listener*> > _delivery_cb_vec;
+    /** Delivery mutex */
+    mutable mutex _delivery_lock;
 
 public:
     async_client(nvds_msgapi_connect_cb_t connect_cb);
@@ -94,10 +98,10 @@ public:
     // Either this or connected() can be used for callbacks.
     void on_success(const mqtt::token &tok) override;
     // (Re)connection success
-    void connected(const std::string &cause) override;
+    void connected(const string &cause) override;
     // Callback for when the connection is lost.
     // This will initiate the attempt to manually reconnect.
-    void connection_lost(const std::string &cause) override;
+    void connection_lost(const string &cause) override;
     // Callback for when a message arrives.
     void message_arrived(mqtt::const_message_ptr msg) override;
     // Callback for when a sent message is ack´ed.
