@@ -38,8 +38,6 @@ void subscribe_listener::on_success(const mqtt::token &tok) {
         nvds_log(NVDS_MQTT_LOG_CAT, LOG_INFO, "MQTT Subscribed: topic[%s],\n", (*top)[0].c_str());
 }
 
-//mqtt_send_complete::mqtt_send_complete(nvds_msgapi_send_cb_t cb, void *ctx) : _send_cb(cb), _user_ctx(ctx) {}
-
 /**
  * Method that gets invoked from "do_work" to avoid concurrent access
  */
@@ -48,46 +46,12 @@ void mqtt_send_complete::ack(NvDsMsgApiErrorType result_code) {
     _send_cb(_user_ctx, result_code);
 }
 
-//delivery_action_listener::delivery_action_listener(void* cli, nvds_msgapi_send_cb_t send_callback, void *user_ctx) :
-//        _cli(cli),
-//        _send_callback(send_callback),
-//        _user_ctx(user_ctx) {
-//    nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "********************* delivery_action_listener CONSTRUCTOR\n");
-//}
-
-//delivery_action_listener::~delivery_action_listener() {
-//    nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "********************* delivery_action_listener DESTRUCTOR\n");
-//}
-
 void delivery_action_listener::on_failure(const mqtt::token &tok) {
     nvds_log(NVDS_MQTT_LOG_CAT, LOG_ERR, "MQTT publish failed for token: %d\n", tok.get_message_id());
-//    static_cast<mqtt_send_complete*>(tok.get_user_context())->ack(NVDS_MSGAPI_ERR);
-
-
-//    nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "nvds_msgapi_send_cb_t send callback invoked\n");
-//    _send_callback(_user_ctx, NVDS_MSGAPI_OK);
-////    unique_lock<shared_mutex> wl(static_cast<async_client*>(_cli)->_delivery_lock);
-////    unique_lock<shared_mutex> wl(static_cast<async_client*>(_cli)->_lock);
-//
-//    static_cast<async_client*>(_cli)->add_delivery(make_shared<mqtt_send_complete>(_send_callback, _user_ctx, NVDS_MSGAPI_ERR));
-////    _send_callback(_user_ctx, NVDS_MSGAPI_ERR);
 }
 
 void delivery_action_listener::on_success(const mqtt::token &tok) {
     nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "MQTT publish OK for token: %d\n", tok.get_message_id());
-//    static_cast<mqtt_send_complete*>(tok.get_user_context())->ack(NVDS_MSGAPI_ERR);
-
-
-//    nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "nvds_msgapi_send_cb_t send callback invoked\n");
-//    _send_callback(_user_ctx, NVDS_MSGAPI_OK);
-
-////    lock_guard<mutex> g(_delivery_lock);
-////    unique_lock<shared_mutex> wl(static_cast<async_client*>(_cli)->_lock);
-//
-//    static_cast<async_client*>(_cli)->add_delivery(make_shared<mqtt_send_complete>(_send_callback, _user_ctx, NVDS_MSGAPI_OK));
-////    unique_lock<shared_mutex> wl(static_cast<async_client*>(_cli)->_delivery_lock);
-////    _send_callback(_user_ctx, NVDS_MSGAPI_OK);
-////    nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "nvds_msgapi_send_cb_t send callback invoked\n");
 }
 
 
@@ -263,7 +227,6 @@ bool async_client::subscribe(char* topic, nvds_msgapi_subscribe_request_cb_t cb,
         return false;
     }
 
-//    lock_guard<mutex> g(_arrival_lock);
     _topic_arrived_vec.push_back({ topic, cb, user_ctx });
 
     return true;
@@ -296,57 +259,22 @@ bool async_client::send_async(mqtt::string_ref topic, const void* payload, size_
     mqtt::message_ptr pubmsg = mqtt::make_message(topic, (const char*)payload);
     pubmsg->set_qos(_qos);
 
-//    scoped_lock lock(_delivery_lock, _lock);
-//    lock_guard<mutex> gd(_delivery_lock);
     lock_guard<mutex> g(_lock);
-//    if ((_qos == 2) || (_qos == 1)) {
-//        shared_ptr<delivery_action_listener> dl = make_shared<delivery_action_listener>(this, cb, user_ctx);
         try {
             mqtt_send_complete* ctx = new mqtt_send_complete(cb, user_ctx);
             pubtok = _cli->publish(pubmsg, ctx, _delivery_action_listener);
         }
         catch (const mqtt::exception &exc) {
             nvds_log(NVDS_MQTT_LOG_CAT, LOG_ERR, "MQTT async publish(), QoS%d : Publish failed: %s\n", _qos, exc.what());
-//            delete dl;
-//            cb(user_ctx, NVDS_MSGAPI_ERR);
-//            add_delivery(make_shared<mqtt_send_complete>(cb, user_ctx, NVDS_MSGAPI_ERR));
             return false;
         }
 
-//        lock_guard<mutex> g(_delivery_lock);
-//        unique_lock<shared_mutex> wl(_delivery_lock);
-//        _delivery_cb_vec.push_back({ pubtok->get_message_id(), dl });
-//    }
-//    else {
-//        try {
-//            pubtok = _cli->publish(pubmsg);
-//        }
-//        catch (const mqtt::exception &exc) {
-//            nvds_log(NVDS_MQTT_LOG_CAT, LOG_ERR, "MQTT async publish(), QoS%d : Publish failed: %s\n", _qos, exc.what());
-//////            cb(user_ctx, NVDS_MSGAPI_ERR);
-////            add_delivery(make_shared<mqtt_send_complete>(cb, user_ctx, NVDS_MSGAPI_ERR));
-//            return false;
-//        }
-//        nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "MQTT publish OK for token, QoS%d : %d\n", pubtok->get_message_id());
-//////        cb(user_ctx, NVDS_MSGAPI_OK);
-////        add_delivery(make_shared<mqtt_send_complete>(cb, user_ctx, NVDS_MSGAPI_OK));
-//    }
     return true;
 }
 
 void async_client::do_work() {
-//    scoped_lock lock(_delivery_lock, _lock);
-//    lock_guard<mutex> gd(_delivery_lock);
     lock_guard<mutex> g(_lock);
-
-//    {
-//        unique_lock<shared_mutex> wl(_delivery_lock);
-//        nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "MQTT delivery cb vector size: %d\n", _delivery_cb_vec.size());
-//        nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "MQTT pending deliveries vector size: %d\n", _pending_deliveries.size());
-        nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "MQTT receive topic vector size: %d\n", _topic_arrived_vec.size());
-//    }
-
-//    process_pending_deliveries();
+    nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "MQTT receive topic vector size: %d\n", _topic_arrived_vec.size());
 }
 
 bool async_client::disconnect(){
@@ -362,21 +290,6 @@ bool async_client::disconnect(){
     nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "\n  ...OK\n");
     return true;
 }
-
-//void async_client::add_delivery(shared_ptr<mqtt_send_complete> msc){
-//////    unique_lock<shared_mutex> wl(_pending_deliveries_lock);
-//////    lock_guard<mutex> g(_delivery_lock);
-////    _pending_deliveries.push_back(msc);
-//}
-//
-//void async_client::process_pending_deliveries() {
-//////    unique_lock<shared_mutex> wl(_pending_deliveries_lock);
-////    while(_pending_deliveries.size() > 0) {
-////        _pending_deliveries.back()->ack();
-////        _pending_deliveries.pop_back();
-////    }
-//}
-
 
 void async_client::reconnect() {
     this_thread::sleep_for(chrono::milliseconds(2500));
@@ -423,8 +336,6 @@ void async_client::connection_lost(const string &cause) {
 void async_client::message_arrived(mqtt::const_message_ptr msg) {
     nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "MQTT message arrived: payload= %s \n topic = %s\n", msg->to_string().c_str(), msg->get_topic().c_str());
 
-//    lock_guard<mutex> g(_arrival_lock);
-//    lock_guard<mutex> g(_lock);
     // Find correct callback and user context and invoke it
     auto it = find_if(_topic_arrived_vec.begin(), _topic_arrived_vec.end(), [msg](const tuple<string, nvds_msgapi_subscribe_request_cb_t, void*>& e) {return get<0>(e) == msg->get_topic();});
     if (it != _topic_arrived_vec.end()) {
@@ -432,19 +343,3 @@ void async_client::message_arrived(mqtt::const_message_ptr msg) {
         get<1>(*it)(NVDS_MSGAPI_OK, (void*)msg->to_string().c_str(), (int)msg->to_string().length(), (char*)get<0>(*it).c_str(), get<2>(*it));
     }
 }
-
-//void async_client::delivery_complete(mqtt::delivery_token_ptr tok) {
-//    nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "Delivery complete...\n");
-
-////    lock_guard<mutex> g(_delivery_lock);
-////    unique_lock<shared_mutex> wl(_delivery_lock);
-////    lock_guard<mutex> g(_lock);
-//    // Find correct callback and user context and remove it
-////    auto it = find_if(_delivery_cb_vec.begin(), _delivery_cb_vec.end(), [tok](const tuple<int, delivery_action_listener*>& e) {return get<0>(e) == tok->get_message_id();});
-//    auto it = find_if(_delivery_cb_vec.begin(), _delivery_cb_vec.end(), [tok](const tuple<int, shared_ptr<delivery_action_listener> >& e) {return get<0>(e) == tok->get_message_id();});
-//    if (it != _delivery_cb_vec.end()) {
-//        nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "Matching callback for: message_id = %d\n", get<0>(*it));
-////        delete (delivery_action_listener*)get<1>(*it);
-//        _delivery_cb_vec.erase(it);
-//    }
-//}

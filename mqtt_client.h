@@ -40,21 +40,9 @@ public:
  * A derived action listener for async publish events.
  */
 class delivery_action_listener : public virtual mqtt::iaction_listener {
-//    void* _cli;
-//    nvds_msgapi_send_cb_t _send_callback;
-//    void *_user_ctx;
-//    mutex& _delivery_lock;
-//    shared_ptr<mqtt_send_complete> _msc;
-
     void on_failure(const mqtt::token &tok) override;
     void on_success(const mqtt::token &tok) override;
-
-//public:
-//    delivery_action_listener(void* cli, nvds_msgapi_send_cb_t send_callback, void *user_ptr);
-//    ~delivery_action_listener();
 };
-
-
 
 /**
  * Local async client class to store config.
@@ -84,23 +72,14 @@ class async_client : public virtual mqtt::callback, public virtual mqtt::iaction
 
     // Subscribe CB <topic, cb, user_ctx>
     vector<tuple<string, nvds_msgapi_subscribe_request_cb_t, void*> > _topic_arrived_vec;
-//    /** Arrival mutex */
-//    mutable mutex _arrival_lock;
-    // Delivery CB <message_id, delivery_action_listener_ptr>
     vector<tuple<int, shared_ptr<delivery_action_listener> > > _delivery_cb_vec;
-//    /** Delivery mutex */
-//    mutable mutex _delivery_lock;
-//    mutable shared_mutex _delivery_lock;
     /** A list pending deliveries */
     list<shared_ptr<mqtt_send_complete> > _pending_deliveries;
-//
 
     friend class delivery_action_listener;
 
 protected:
     mutable mutex _lock;
-//    mutable mutex _delivery_lock;
-
 
 public:
     async_client(nvds_msgapi_connect_cb_t connect_cb);
@@ -113,10 +92,6 @@ public:
     bool send_async(mqtt::string_ref topic, const void* payload, size_t n, nvds_msgapi_send_cb_t cb, void *user_ctx);
     void do_work();
     bool disconnect();
-
-//    // Pending deliveries
-//    void add_delivery(shared_ptr<mqtt_send_complete> msc);
-//    void process_pending_deliveries();
 
     // Callbacks
     void reconnect();
@@ -132,8 +107,6 @@ public:
     void connection_lost(const string &cause) override;
     // Callback for when a message arrives.
     void message_arrived(mqtt::const_message_ptr msg) override;
-    // Callback for when a sent message is ack´ed.
-//    void delivery_complete(mqtt::delivery_token_ptr tok) override;
 
 };
 
