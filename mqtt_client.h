@@ -3,6 +3,7 @@
 
 #include "mqtt/async_client.h"
 #include "nvds_msgapi.h"
+#include <shared_mutex>
 
 using namespace std;
 
@@ -26,19 +27,31 @@ class subscribe_listener : public virtual mqtt::iaction_listener {
     void on_success(const mqtt::token &tok) override;
 };
 
+class mqtt_send_complete {
+    nvds_msgapi_send_cb_t _send_cb;
+    void *_user_ctx;
+
+public:
+    mqtt_send_complete(nvds_msgapi_send_cb_t cb, void *ctx) : _send_cb(cb), _user_ctx(ctx) {};
+    void ack(NvDsMsgApiErrorType result_code);
+};
+
 /**
  * A derived action listener for async publish events.
  */
 class delivery_action_listener : public virtual mqtt::iaction_listener {
-    nvds_msgapi_send_cb_t _send_callback;
-    void *_user_ptr;
+//    void* _cli;
+//    nvds_msgapi_send_cb_t _send_callback;
+//    void *_user_ctx;
+//    mutex& _delivery_lock;
+//    shared_ptr<mqtt_send_complete> _msc;
 
     void on_failure(const mqtt::token &tok) override;
     void on_success(const mqtt::token &tok) override;
 
-public:
-    delivery_action_listener(nvds_msgapi_send_cb_t send_callback, void *user_ptr) : _send_callback(send_callback),
-                                                                                    _user_ptr(user_ptr) {}
+//public:
+//    delivery_action_listener(void* cli, nvds_msgapi_send_cb_t send_callback, void *user_ptr);
+//    ~delivery_action_listener();
 };
 
 
@@ -67,15 +80,27 @@ class async_client : public virtual mqtt::callback, public virtual mqtt::iaction
     int _nretry;
     mqtt::connect_options _conn_opts;
     subscribe_listener _subscribe_listener;
+    delivery_action_listener _delivery_action_listener;
 
     // Subscribe CB <topic, cb, user_ctx>
     vector<tuple<string, nvds_msgapi_subscribe_request_cb_t, void*> > _topic_arrived_vec;
-    /** Arrival mutex */
-    mutable mutex _arrival_lock;
+//    /** Arrival mutex */
+//    mutable mutex _arrival_lock;
     // Delivery CB <message_id, delivery_action_listener_ptr>
-    vector<tuple<int, delivery_action_listener*> > _delivery_cb_vec;
-    /** Delivery mutex */
-    mutable mutex _delivery_lock;
+    vector<tuple<int, shared_ptr<delivery_action_listener> > > _delivery_cb_vec;
+//    /** Delivery mutex */
+//    mutable mutex _delivery_lock;
+//    mutable shared_mutex _delivery_lock;
+    /** A list pending deliveries */
+    list<shared_ptr<mqtt_send_complete> > _pending_deliveries;
+//
+
+    friend class delivery_action_listener;
+
+protected:
+    mutable mutex _lock;
+//    mutable mutex _delivery_lock;
+
 
 public:
     async_client(nvds_msgapi_connect_cb_t connect_cb);
@@ -89,8 +114,11 @@ public:
     void do_work();
     bool disconnect();
 
-    // Callbacks
+//    // Pending deliveries
+//    void add_delivery(shared_ptr<mqtt_send_complete> msc);
+//    void process_pending_deliveries();
 
+    // Callbacks
     void reconnect();
     // Re-connection failure
     void on_failure(const mqtt::token &tok) override;
@@ -105,7 +133,7 @@ public:
     // Callback for when a message arrives.
     void message_arrived(mqtt::const_message_ptr msg) override;
     // Callback for when a sent message is ack´ed.
-    void delivery_complete(mqtt::delivery_token_ptr tok) override;
+//    void delivery_complete(mqtt::delivery_token_ptr tok) override;
 
 };
 

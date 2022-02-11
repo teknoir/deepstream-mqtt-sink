@@ -182,7 +182,7 @@ NvDsMsgApiErrorType nvds_msgapi_disconnect(NvDsMsgApiHandle h_ptr) {
 }
 
 /**
-  * Returns version of API supported byh this adaptor
+  * Returns version of API supported by this adaptor
   */
 char *nvds_msgapi_getversion() {
     return (char *) NVDS_MSGAPI_VERSION;

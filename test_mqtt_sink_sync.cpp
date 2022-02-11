@@ -7,7 +7,7 @@
 
 /* MODIFY: to reflect your own path */
 #define SO_PATH "./"  // "/opt/nvidia/deepstream/deepstream/lib/"
-#define MQTT_SINK_SO "libnvds_mqtt_sink.so"
+#define MQTT_SINK_SO "libnvds_mqtt_sink_d.so"
 #define MQTT_SINK_PATH SO_PATH MQTT_SINK_SO
 #define MQTT_CFG_FILE "./cfg.txt"
 //connection string format: host;port
