@@ -38,9 +38,6 @@ void subscribe_listener::on_success(const mqtt::token &tok) {
         nvds_log(NVDS_MQTT_LOG_CAT, LOG_INFO, "MQTT Subscribed: topic[%s],\n", (*top)[0].c_str());
 }
 
-/**
- * Method that gets invoked from "do_work" to avoid concurrent access
- */
 void mqtt_send_complete::ack(NvDsMsgApiErrorType result_code) {
     nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "nvds_msgapi_send_cb_t send callback invoked\n");
     _send_cb(_user_ctx, result_code);
@@ -48,10 +45,16 @@ void mqtt_send_complete::ack(NvDsMsgApiErrorType result_code) {
 
 void delivery_action_listener::on_failure(const mqtt::token &tok) {
     nvds_log(NVDS_MQTT_LOG_CAT, LOG_ERR, "MQTT publish failed for token: %d\n", tok.get_message_id());
+    mqtt_send_complete* msc = static_cast<mqtt_send_complete*>(tok.get_user_context());
+    thread t(msc->_send_cb, msc->_user_ctx, NVDS_MSGAPI_ERR);
+    t.detach();
 }
 
 void delivery_action_listener::on_success(const mqtt::token &tok) {
     nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "MQTT publish OK for token: %d\n", tok.get_message_id());
+    mqtt_send_complete* msc = static_cast<mqtt_send_complete*>(tok.get_user_context());
+    thread t(msc->_send_cb, msc->_user_ctx, NVDS_MSGAPI_OK);
+    t.detach();
 }
 
 

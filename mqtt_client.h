@@ -28,10 +28,10 @@ class subscribe_listener : public virtual mqtt::iaction_listener {
 };
 
 class mqtt_send_complete {
+public:
     nvds_msgapi_send_cb_t _send_cb;
     void *_user_ctx;
 
-public:
     mqtt_send_complete(nvds_msgapi_send_cb_t cb, void *ctx) : _send_cb(cb), _user_ctx(ctx) {};
     void ack(NvDsMsgApiErrorType result_code);
 };
