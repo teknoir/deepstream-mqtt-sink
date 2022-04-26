@@ -259,7 +259,7 @@ bool async_client::send_async(mqtt::string_ref topic, const void* payload, size_
     nvds_log(NVDS_MQTT_LOG_CAT, LOG_DEBUG, "SEND ASYNC QoS%d on topic = %s\n", _qos, topic.c_str());
 
     mqtt::delivery_token_ptr pubtok;
-    mqtt::message_ptr pubmsg = mqtt::make_message(topic, (const char*)payload);
+    mqtt::message_ptr pubmsg = mqtt::make_message(topic, (const char*)payload, n);
     pubmsg->set_qos(_qos);
 
     lock_guard<mutex> g(_lock);
